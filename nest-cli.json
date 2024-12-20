@@ -4,5 +4,10 @@
   "sourceRoot": "src",
   "generateOptions": {
     "spec": false
+  },
+  "compilerOptions": {
+    "assets": ["**/*.env"],
+    "deleteOutDir": true,
+    "watchAssets": true
   }
 }

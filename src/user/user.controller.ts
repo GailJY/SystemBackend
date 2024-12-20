@@ -3,6 +3,9 @@ import { UserService } from './user.service';
 import { RegisterUserDto } from './RegisterUserDto';
 import { EmailService } from '../email/email.service';
 import { RedisService } from 'src/redis/redis.service';
+import { LoginUserDto } from './dto/login-user.dto';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 
 @Controller('user')
 export class UserController {
@@ -33,4 +36,40 @@ export class UserController {
     return '发送成功'
   }
 
+  @Get('init-data')
+  async initData(){
+    await this.userService.initData();
+    return 'done';
+  }
+
+  @Inject(JwtService)
+  private jwtService: JwtService;
+
+  @Inject(ConfigService)
+  private configService: ConfigService;
+  @Post('login')
+  async userLogin(@Body() loginUser: LoginUserDto){
+    const vo = await this.userService.login(loginUser, false);
+    vo.accessToken = this.jwtService.sign({
+      userId: vo.userInfo.id,
+      username: vo.userInfo.username,
+      roles: vo.userInfo.roles,
+      permissions: vo.userInfo.permissions
+    },{
+      expiresIn: this.configService.get('jwt_access_token_expire_time') || '30m'
+    })
+
+    vo.refreshToken = this.jwtService.sign({
+      userId: vo.userInfo.id,
+    },{
+      expiresIn: this.configService.get('jwt_refresh_token_expire_time') || '30m'
+    })
+    return vo;
+  }
+
+  @Post('admin/login')
+  async adminLogin(@Body() loginUser: LoginUserDto){
+    const vo = await this.userService.login(loginUser, true);
+    return vo;
+  }
 }
